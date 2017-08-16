@@ -1,7 +1,7 @@
 open Migrate_parsetree.Ast_403;
 
 let my_rewriter config cookies =>
-  Lib.mapper;
+  Lib.mapper [Lib.jsonConfig];
 
 let () =
   Migrate_parsetree.Driver.register name::"ppx_magic"

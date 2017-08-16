@@ -8,27 +8,27 @@ let show_structure structure => {
   Format.flush_str_formatter();
 };
 
-let fixtures = [(/* (input, output) */
+let json_fixtures = [(/* (input, output) */
   [%str type x = int],
-  List.append Lib.prefix [%str
+  [%str
     type x = int;
     let x__'bs'to_json = int__'bs'to_json;
   ]
 ), (
   [%str type x = awesome],
-  List.append Lib.prefix [%str
+  [%str
     type x = awesome;
     let x__'bs'to_json = awesome__'bs'to_json;
   ]
 ), (
   [%str type x = list int],
-  List.append Lib.prefix [%str
+  [%str
     type x = list int;
     let x__'bs'to_json = list__'bs'to_json int__'bs'to_json;
   ]
 ), (
   [%str type x = {a: int, c: string}],
-  List.append Lib.prefix [%str
+  [%str
     type x = {a: int, c: string};
     let x__'bs'to_json = fun value => {
       let result = Js.Dict.empty ();
@@ -45,7 +45,7 @@ let fixtures = [(/* (input, output) */
   ]
 ), (
   [%str type x 'a = {a: 'a, c: string}],
-  List.append Lib.prefix [%str
+  [%str
     type x 'a = {a: 'a, c: string};
     let x__'bs'to_json = fun a_converter value => {
       let result = Js.Dict.empty ();
@@ -66,9 +66,13 @@ let todo = [(
 )];
 
 let run () => {
+  let mapper = Lib.mapper [{
+    ...Lib.jsonConfig,
+    prefix: []
+  }];
   let (total, failures) = List.fold_left (fun (total, failures) (input, expected) => {
     try {
-    let result = Lib.mapper.structure Lib.mapper input;
+    let result = mapper.structure mapper input;
     if (result != expected) {
       print_endline ">> Input:";
       print_endline (show_structure input);
@@ -89,7 +93,7 @@ let run () => {
         (total + 1, failures + 1)
       }
     }
-  }) (0, 0) fixtures;
+  }) (0, 0) json_fixtures;
 
   if (failures !== 0) {
       Printf.printf "Total: %d, Failures: %d" total failures;
