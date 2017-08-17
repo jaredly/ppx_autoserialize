@@ -1,5 +1,6 @@
 
-let fixtures = [(
+let fixtures = [
+  /* (
   [%str type x = One string | Two int float | Three],
   [%str type x = One string | Two int float | Three;
   let x__to_yojson value => switch value {
@@ -8,4 +9,5 @@ let fixtures = [(
   | Three => `String "Three"
   }
   ],
-)];
+) */
+];

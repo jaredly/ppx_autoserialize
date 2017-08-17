@@ -15,6 +15,16 @@ let rec suffixify lident suffix => Longident.(switch lident {
 | Lapply a b => Lapply a (suffixify b suffix)
 });
 
+let rec patList (items: list Parsetree.pattern) => List.fold_right
+(fun item rest => {
+  (Ast_helper.Pat.construct
+  (Location.mknoloc (Longident.Lident "::"))
+  (Some (Ast_helper.Pat.tuple [item, rest]))
+  )
+})
+items
+(Ast_helper.Pat.construct (Location.mknoloc (Longident.Lident "[]")) None);
+
 let rec list (items: list Parsetree.expression) => List.fold_right
 (fun item rest => {
   (Ast_helper.Exp.construct

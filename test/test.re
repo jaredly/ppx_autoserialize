@@ -12,6 +12,9 @@ type jumbo = {
   nested: nested,
 };
 
+type thing = A | B;
+type complexThing = Aa string | Bb int float | Cc;
+
 let check fromfn tofn value => {
   let str = Yojson.Safe.to_string (tofn value);
   /* print_endline str; */
@@ -38,6 +41,10 @@ let run () => {
     check my_int__from_yojson my_int__to_yojson 20,
     check string_list__from_yojson string_list__to_yojson ["a", "b"],
     check nested__from_yojson nested__to_yojson {name: "awesome"},
+    check thing__from_yojson thing__to_yojson A,
+    check (list__from_yojson complexThing__from_yojson)
+    (list__to_yojson complexThing__to_yojson)
+    [Aa "a", Bb 1 2.3, Cc, Aa "m"],
     check
     jumbo__from_yojson
     jumbo__to_yojson

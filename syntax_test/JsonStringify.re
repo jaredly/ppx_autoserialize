@@ -45,9 +45,5 @@ let fixtures = [(/* (input, output) */
       Js.Json.object_ result
     };
   ]
-), (
-  [%str type x = One string | Two int | Three],
-  [%str
-  ]
   /** TODO records, variants. maybe that's it? */
 )];

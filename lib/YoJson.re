@@ -128,8 +128,52 @@ let parse = {
     };
   ],
   suffix: "__from_yojson",
+
   variant: fun core_type_converter constructors => {
-    simple (Longident.Lident "jkjk")
+    open Parsetree;
+    open Ast_helper;
+    open Longident;
+    let cases = List.map
+    (fun {pcd_name: {txt, loc}, pcd_args} => {
+      let strConst = (Exp.constant (Pconst_string txt None));
+      let patConst = [%pat? `String [%p (Pat.constant (Pconst_string txt None))]];
+      let lid = (Location.mknoloc (Lident txt));
+      switch pcd_args {
+      | Pcstr_tuple types => {
+        switch types {
+          | [] => Exp.case patConst [%expr Some [%e Exp.construct lid None]]
+          | _ => {
+            let items = List.mapi
+            (fun i typ => Utils.patVar ("arg" ^ (string_of_int i)))
+            types;
+
+            let pattern = Utils.patList [patConst, ...items];
+
+            /* TODO work here */
+            let values = List.mapi
+            (fun i typ => {
+              let larg = Utils.expIdent ("arg" ^ (string_of_int i));
+              [%expr [%e core_type_converter typ] [%e larg]]
+            })
+            types;
+
+            let values = [[%expr `String [%e strConst]], ...values];
+            Exp.case pattern [%expr `List [%e Utils.list values]]
+          }
+        }
+      }
+      /* This isn't supported in 4.02 anyway */
+      | Pcstr_record labels => Utils.fail loc "Nope record labels"
+      }
+    })
+    constructors;
+    let cases = List.append cases [Exp.case (Pat.any ()) [%expr None]];
+
+    Exp.fun_
+    Asttypes.Nolabel
+    None
+    (Utils.patVar "value")
+    (Exp.match_ [%expr value] cases)
   },
 
   record: fun core_type_converter labels => {
