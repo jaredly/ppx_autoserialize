@@ -3,8 +3,8 @@
 
 (executable (
   (name test)
-  (libraries (lib yojson ocaml-migrate-parsetree))
-  (preprocess (pps (ppx_tools_versioned.metaquot_403 ppx_magic)))
+  (libraries (lib ocaml-migrate-parsetree))
+  (preprocess (pps (ppx_tools_versioned.metaquot_403)))
 ))
 
 (alias (

@@ -1,49 +1,12 @@
 
+open Types;
+open Utils;
 open Migrate_parsetree.Ast_403;
 
-/* utils */
-let fail loc txt => raise (Location.Error (Location.error ::loc txt));
-
-let left txt => Ast_helper.Pat.var (Location.mknoloc txt);
-let simple txt => Ast_helper.Exp.ident (Location.mknoloc txt);
-
-let rec suffixify lident suffix => Longident.(switch lident {
-| Lident x => Lident (x ^ suffix)
-| Ldot x y => Ldot x (y ^ suffix)
-| Lapply a b => Lapply a (suffixify b suffix)
-});
-
-let rec chainExpressions expressions => {
-  switch expressions {
-  | [] => assert false
-  | [one] => one
-  | [one, ...rest] => Ast_helper.Exp.sequence one (chainExpressions rest)
-  }
-};
-
-let paramd_fun param_names body => {
-  open Parsetree;
-  open Longident;
-  open Ast_helper;
-
-  List.fold_right
-  (fun name body => {
-    Exp.fun_
-    Asttypes.Nolabel
-    None
-    (Pat.var (Location.mknoloc (name ^ "_converter")))
-    body
-  })
-  param_names
-  body
-};
-
-type config = {
-  prefix: Parsetree.structure,
-  suffix: string,
-  variant: (Parsetree.core_type => Parsetree.expression) => list Parsetree.constructor_declaration => Parsetree.expression,
-  record: (Parsetree.core_type => Parsetree.expression) => list Parsetree.label_declaration => Parsetree.expression,
-};
+let module Json = Json;
+let module YoJson = YoJson;
+let module Utils = Utils;
+let module Types = Types;
 
 let rec core_type_converter suffix typ => {
   open Parsetree;
@@ -78,7 +41,7 @@ let make_converters configs {Parsetree.ptype_name: {txt}, ptype_params, ptype_ki
   (fun {suffix, variant, record} => {
     let right = switch ptype_manifest {
     | Some typ => {
-      core_type_converter suffix typ
+      [%expr fun value => [%e core_type_converter suffix typ] value]
     }
     | None => switch ptype_kind {
       | Ptype_abstract => [%expr fun value => "type is abstract"]
@@ -117,71 +80,3 @@ let mapper configs => Parsetree.{
     items
   },
 };
-
-let jsonConfig = {
-  prefix: [%str
-    let int__'bs'to_json x => Js.Json.number (float_of_int x);
-    let float__'bs'to_json = Js.Json.number;
-    let list__'bs'to_json convert items => Js.Json.array (Array.of_list (List.map convert items));
-    let string__'bs'to_json = Js.Json.string;
-    let array__'bs'to_json convert items => Js.Json.array (Array.map convert items);
-    let boolean__'bs'to_json = Js.Json.boolean;
-  ],
-  suffix: "__'bs'to_json",
-  variant: fun core_type_converter constructors => {
-    simple (Longident.Lident "jkjk")
-  },
-
-  record: fun core_type_converter labels => {
-    open Parsetree;
-    open Longident;
-    open Ast_helper;
-
-    let sets = List.map
-    (fun {pld_name: {txt}, pld_type} => {
-      let value = Exp.field [%expr value] (Location.mknoloc (Lident txt));
-      let strConst = Exp.constant (Pconst_string txt None);
-      [%expr Js.Dict.set result [%e strConst]
-        ([%e core_type_converter pld_type] [%e value])]
-    })
-    labels;
-
-    let body = List.append
-      sets
-      [
-        [%expr Js.Json.object_ result]
-      ]
-    |> chainExpressions;
-
-    let body = Exp.let_ Nonrecursive [
-      Ast_helper.Vb.mk
-      (left "result")
-      [%expr Js.Dict.empty ()]
-    ]
-    body;
-
-    Exp.fun_
-      Asttypes.Nolabel
-      None
-      (Pat.var (Location.mknoloc "value"))
-      body;
-  }
-};
-
-let devtoolsConfig = {
-  prefix: [%str
-    type devtools; /* TODO this doesn't work across modules */
-    external to_devtools: 'a => devtools = "%identity";
-    let int__'bs'to_devtools = to_devtools;
-    let float__'bs'to_devtools = to_devtools;
-    let string__'bs'to_devtools = to_devtools;
-    let boolean__'bs'to_devtools = to_devtools;
-    let list__'bs'to_devtools convert items => {"$bs": "list", "items": List.map convert items} |> to_devtools;
-    let array__'bs'to_devtools convert items => Array.map convert items |> to_devtools;
-  ],
-  suffix: "__'bs'to_devtools",
-  variant: fun core_type_converter constructors => simple (Lident "Nope"),
-  record: fun core_type_converter labels => simple (Lident "Nope"),
-};
-
-
