@@ -11,10 +11,14 @@ let stringify = {
     let string__to_yojson x => `String x;
     let array__to_yojson convert items => `List (Array.to_list (Array.map convert items));
     let boolean__to_yojson x => `Bool x;
+    let option__to_yojson convert x => switch x {
+    | None => `Null
+    | Some x => `List [convert x]
+    };
   ],
   suffix: "__to_yojson",
 
-  variant: fun core_type_converter constructors => {
+  variant: fun core_type_converter constructors name => {
     open Parsetree;
     open Ast_helper;
     open Longident;
@@ -30,8 +34,13 @@ let stringify = {
             let items = List.mapi
             (fun i typ => Utils.patVar ("arg" ^ (string_of_int i)))
             types;
+            let args = switch items {
+            | [] => None
+            | [single] => Some single
+            | _ => Some (Pat.tuple items)
+            };
 
-            let pat = Pat.construct lid (Some (Pat.tuple items));
+            let pat = Pat.construct lid args;
             let values = List.mapi
             (fun i typ => {
               let larg = Utils.expIdent ("arg" ^ (string_of_int i));
@@ -55,7 +64,7 @@ let stringify = {
     (Exp.match_ [%expr value] cases)
   },
 
-  record: fun core_type_converter labels => {
+  record: fun core_type_converter labels name => {
     open Parsetree;
     open Longident;
     open Ast_helper;
@@ -126,10 +135,18 @@ let parse = {
     | `Bool v => Some v
     | _ => None
     };
+    let option__from_yojson convert value => switch value {
+    | `Null => Some None
+    | `List [value] => switch (convert value) {
+      | None => None
+      | Some x => Some (Some x)
+    }
+    | _ => None
+    };
   ],
   suffix: "__from_yojson",
 
-  variant: fun core_type_converter constructors => {
+  variant: fun core_type_converter constructors name => {
     open Parsetree;
     open Ast_helper;
     open Longident;
@@ -147,18 +164,36 @@ let parse = {
             (fun i typ => Utils.patVar ("arg" ^ (string_of_int i)))
             types;
 
-            let pattern = Utils.patList [patConst, ...items];
+            let pattern = [%pat? `List [%p Utils.patList [patConst, ...items]]];
 
-            /* TODO work here */
-            let values = List.mapi
-            (fun i typ => {
-              let larg = Utils.expIdent ("arg" ^ (string_of_int i));
-              [%expr [%e core_type_converter typ] [%e larg]]
+            let args = switch types {
+            | [] => None
+            | [_] => Some (Utils.expIdent "arg0")
+            
+            | _ => Some (Exp.tuple (List.mapi
+                    (fun i typ => {
+                      Utils.expIdent ("arg" ^ (string_of_int i))
+                    })
+                    types))
+            };
+            let expr = Exp.construct lid args;
+
+            let (body, _) = List.fold_right
+            (fun typ (body, i) => {
+              ([%expr
+              switch ([%e core_type_converter typ]
+                        [%e Utils.expIdent ("arg" ^ (string_of_int i))]) {
+                | None => None
+                | Some [%p (Utils.patVar ("arg" ^ (string_of_int i)))] => {
+                  [%e body]
+                }
+              }
+              ], i - 1)
             })
-            types;
+            types
+            ([%expr Some [%e expr]], (List.length types) - 1);
 
-            let values = [[%expr `String [%e strConst]], ...values];
-            Exp.case pattern [%expr `List [%e Utils.list values]]
+            Exp.case pattern body;
           }
         }
       }
@@ -176,7 +211,7 @@ let parse = {
     (Exp.match_ [%expr value] cases)
   },
 
-  record: fun core_type_converter labels => {
+  record: fun core_type_converter labels name => {
     open Parsetree;
     open Longident;
     open Ast_helper;

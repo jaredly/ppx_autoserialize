@@ -6,6 +6,7 @@ let fail loc txt => raise (Location.Error (Location.error ::loc txt));
 let left txt => Ast_helper.Pat.var (Location.mknoloc txt);
 let simple txt => Ast_helper.Exp.ident (Location.mknoloc txt);
 
+let strConst txt => (Ast_helper.Exp.constant (Pconst_string txt None));
 let patVar txt => Ast_helper.Pat.var (Location.mknoloc txt);
 let expIdent txt => Ast_helper.Exp.ident (Location.mknoloc (Longident.Lident txt));
 

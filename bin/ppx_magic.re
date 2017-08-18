@@ -4,6 +4,7 @@ let my_rewriter config cookies =>
   Lib.mapper [
     Lib.Json.stringify,
     Lib.Json.parse,
+    Lib.Devtools.config,
   ];
 
 let () =

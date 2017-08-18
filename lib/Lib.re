@@ -7,6 +7,7 @@ let module Json = Json;
 let module YoJson = YoJson;
 let module Utils = Utils;
 let module Types = Types;
+let module Devtools = Devtools;
 
 let rec core_type_converter suffix typ => {
   open Parsetree;
@@ -23,7 +24,8 @@ let rec core_type_converter suffix typ => {
   | Ptyp_var name => {
     simple (Lident (name ^ "_converter"))
   }
-  | _ => fail typ.ptyp_loc "Nopes"
+  /* TODO serlize the AST & show it here for debugging */
+  | _ => [%expr fun _ => failwith "Unexpected core type, cannot convert"]
   }
 };
 
@@ -44,9 +46,9 @@ let make_converters configs {Parsetree.ptype_name: {txt}, ptype_params, ptype_ki
       [%expr fun value => [%e core_type_converter suffix typ] value]
     }
     | None => switch ptype_kind {
-      | Ptype_abstract => [%expr fun value => "type is abstract"]
-      | Ptype_variant constructors => variant (core_type_converter suffix) constructors /* TODO names */
-      | Ptype_record labels => record (core_type_converter suffix) labels
+      | Ptype_abstract => [%expr fun value => "type is abstract & cannot be converted"]
+      | Ptype_variant constructors => variant (core_type_converter suffix) constructors txt
+      | Ptype_record labels => record (core_type_converter suffix) labels txt
       | Ptype_open => [%expr fun value => "type is open & cannot be converted"]
       }
     };
@@ -62,6 +64,8 @@ let make_converters configs {Parsetree.ptype_name: {txt}, ptype_params, ptype_ki
 
 let mapper configs => Parsetree.{
   ...Ast_mapper.default_mapper,
+
+  payload: fun mapper payload => payload,
 
   structure: fun mapper structure => {
     let rec loop items => {

@@ -5,19 +5,66 @@ open Migrate_parsetree.Ast_403;
 
 let stringify = {
   prefix: [%str
-    let int__'bs'to_json x => Js.Json.number (float_of_int x);
-    let float__'bs'to_json = Js.Json.number;
-    let list__'bs'to_json convert items => Js.Json.array (Array.of_list (List.map convert items));
-    let string__'bs'to_json = Js.Json.string;
-    let array__'bs'to_json convert items => Js.Json.array (Array.map convert items);
-    let boolean__'bs'to_json = Js.Json.boolean;
+    let int__to_json x => Js.Json.number (float_of_int x);
+    let float__to_json = Js.Json.number;
+    let list__to_json convert items => Js.Json.array (Array.of_list (List.map convert items));
+    let string__to_json = Js.Json.string;
+    let array__to_json convert items => Js.Json.array (Array.map convert items);
+    let boolean__to_json = Js.Json.boolean;
+    let option__to_json convert value => switch value {
+    | None => Js.Json.null
+    | Some value => Js.Json.array [|convert value|]
+    }
   ],
-  suffix: "__'bs'to_json",
-  variant: fun core_type_converter constructors => {
-    simple (Longident.Lident "jkjk")
+  suffix: "__to_json",
+
+  variant: fun core_type_converter constructors name => {
+    open Parsetree;
+    open Ast_helper;
+    open Longident;
+    let cases = List.map
+    (fun {pcd_name: {txt, loc}, pcd_args} => {
+      let strConst = (Exp.constant (Pconst_string txt None));
+      let lid = (Location.mknoloc (Lident txt));
+      switch pcd_args {
+      | Pcstr_tuple types => {
+        switch types {
+          | [] => Exp.case (Pat.construct lid None) [%expr Js.Json.string [%e strConst]]
+          | _ => {
+            let items = List.mapi
+            (fun i typ => Utils.patVar ("arg" ^ (string_of_int i)))
+            types;
+            let args = switch items {
+            | [] => None
+            | [single] => Some single
+            | _ => Some (Pat.tuple items)
+            };
+
+            let pat = Pat.construct lid args;
+            let values = List.mapi
+            (fun i typ => {
+              let larg = Utils.expIdent ("arg" ^ (string_of_int i));
+              [%expr [%e core_type_converter typ] [%e larg]]
+            })
+            types;
+            let values = [[%expr Js.Json.string [%e strConst]], ...values];
+            Exp.case pat [%expr Js.Json.array [%e Exp.array values]]
+          }
+        }
+      }
+      /* This isn't supported in 4.02 anyway */
+      | Pcstr_record labels => Utils.fail loc "Nope record labels"
+      }
+    })
+    constructors;
+    Exp.fun_
+    Asttypes.Nolabel
+    None
+    (Utils.patVar "value")
+    (Exp.match_ [%expr value] cases)
   },
 
-  record: fun core_type_converter labels => {
+  record: fun core_type_converter labels name => {
     open Parsetree;
     open Longident;
     open Ast_helper;
@@ -55,15 +102,15 @@ let stringify = {
 
 let parse = {
   prefix: [%str
-    let int__'bs'from_json x => switch (Js.Json.classify x) {
+    let int__from_json x => switch (Js.Json.classify x) {
     | JSONNumber n => Some (int_of_float n)
     | _ => None
     };
-    let float__'bs'from_json x => switch (Js.Json.classify x) {
+    let float__from_json x => switch (Js.Json.classify x) {
     | JSONNumber n => Some n
     | _ => None
     };
-    let list__'bs'from_json convert items => switch (Js.Json.classify x) {
+    let list__from_json convert items => switch (Js.Json.classify items) {
     | JSONArray arr => {
       try {
         let items = Array.map (fun item => {
@@ -79,11 +126,11 @@ let parse = {
     }
     | _ => None
     };
-    let string__'bs'from_json value => switch (Js.Json.classify x) {
+    let string__from_json value => switch (Js.Json.classify value) {
     | JSONString str => Some str
     | _ => None
     };
-    let array__'bs'from_json convert items => switch (Js.Json.classify x) {
+    let array__from_json convert items => switch (Js.Json.classify items) {
     | JSONArray arr => {
       try {
         let items = Array.map (fun item => {
@@ -99,18 +146,117 @@ let parse = {
     }
     | _ => None
     };
-    let boolean__'bs'from_json value => switch (Js.Json.classify x) {
+    let boolean__from_json value => switch (Js.Json.classify value) {
     | JSONFalse => Some false
     | JSONTrue => Some true
     | _ => None
     };
+    let option__from_json convert value => switch (Js.Json.classify value) {
+    | JSONNull => Some None
+    | JSONArray [|item|] => switch (convert item) {
+        | None => None
+        | Some value => Some (Some value)
+      }
+    | _ => None
+    };
   ],
-  suffix: "__'bs'from_json",
-  variant: fun core_type_converter constructors => {
-    simple (Longident.Lident "jkjk")
+  suffix: "__from_json",
+
+  variant: fun core_type_converter constructors name => {
+    /* [%expr fun _ => failwith "not supported"] */
+    open Parsetree;
+    open Ast_helper;
+    open Longident;
+
+    /* [%expr
+    fun value => {
+      switch (Js.Json.classify value) {
+      | JSONString "awesome" =>
+      | JSONArray arr when Js.Json.classify arr.(0) == JSONString "moresome" => {
+
+      }
+      }
+    }
+    ] */
+
+
+    let cases = List.map
+    (fun {pcd_name: {txt, loc}, pcd_args} => {
+      let patConst = (Pat.constant (Pconst_string txt None));
+      /* let processArgs = 
+      let body = [%expr switch items {
+      | [%p Pat.array [Pat.any (), ...args]] => {
+        [%e processArgs]
+      }
+      | _ => None
+      }]; */
+      let strConst = (Exp.constant (Pconst_string txt None));
+      let lid = (Location.mknoloc (Lident txt));
+      switch pcd_args {
+      | Pcstr_tuple types => {
+        switch types {
+          | [] => Exp.case
+              [%pat? JSONString [%p patConst]]
+              [%expr Some [%e Exp.construct lid None]]
+          | _ => {
+            let items = List.mapi
+            (fun i typ => Utils.patVar ("arg" ^ (string_of_int i)))
+            types;
+
+            let pattern = Pat.array [Pat.any(), ...items];
+
+            let args = switch types {
+            | [] => None
+            | [_] => Some (Utils.expIdent "arg0")
+            
+            | _ => Some (Exp.tuple (List.mapi
+                    (fun i typ => {
+                      Utils.expIdent ("arg" ^ (string_of_int i))
+                    })
+                    types))
+            };
+            let expr = Exp.construct lid args;
+
+            let (body, _) = List.fold_right
+            (fun typ (body, i) => {
+              ([%expr
+              switch ([%e core_type_converter typ]
+                        [%e Utils.expIdent ("arg" ^ (string_of_int i))]) {
+                | None => None
+                | Some [%p (Utils.patVar ("arg" ^ (string_of_int i)))] => {
+                  [%e body]
+                }
+              }
+              ], i - 1)
+            })
+            types
+            ([%expr Some [%e expr]], (List.length types) - 1);
+
+            Exp.case
+              [%pat? Js.Json.JSONArray arr]
+              guard::[%expr Js.Json.classify arr.(0) == JSONString [%e strConst]]
+              [%expr switch arr {
+              | [%p pattern] => [%e body]
+              | _ => None
+              }]
+          }
+        }
+      }
+      /* This isn't supported in 4.02 anyway */
+      | Pcstr_record labels => Utils.fail loc "Nope record labels"
+      }
+    })
+    constructors;
+    let cases = List.append cases [Exp.case (Pat.any ()) [%expr None]];
+
+    Exp.fun_
+    Asttypes.Nolabel
+    None
+    (Utils.patVar "value")
+    (Exp.match_ [%expr Js.Json.classify value] cases)
   },
 
-  record: fun core_type_converter labels => {
+  record: fun core_type_converter labels name => {
     open Parsetree;
     open Longident;
     open Ast_helper;
