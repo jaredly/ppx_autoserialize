@@ -1,5 +1,5 @@
 opam-version: "2.0"
-name: "ppx_magic"
+name: "ppx_autoserialize"
 version: "1.0.0"
 maintainer: "Jared Forsyth <jared@jaredforsyth.com>"
 authors: ["Jared Forsyth <jared@jaredforsyth.com>"]
