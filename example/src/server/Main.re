@@ -21,17 +21,33 @@ let maybe_parse text => try(Some (Yojson.Safe.from_string text)) {
 
 let withBody body fn => Lwt.(Cohttp_lwt_body.to_string body >>= fn);
 let withJsonBody body fn => withBody body (fun body => fn (maybe_parse body));
+let withParsedBody body parse fn => withBody body (fun body => switch (maybe_parse body) {
+  | None => CoServer.respond_string status::`Bad_request body::"" ()
+  | Some json => switch (parse json) {
+    | None => CoServer.respond_string status::`Bad_request body::"" ()
+    | Some data => fn data
+  }
+});
 
 Server.get_prefix "/" (Server.serveStatic "../public");
+
 Server.get "/todos" (fun _ _ _ => Server.json (todos__to_yojson (!appState).todos));
-Server.post "/todo/add" (fun _ body _ => withBody body (fun body => {
+
+Server.post "/todo/add" (fun _ body _ => withParsedBody body new_todo__from_yojson (fun text => {
   let id = (!appState).nextId;
-  let todo = {completed: None, id, text: body};
+  let todo = {completed: None, id, text};
+  let todos = List.append (!appState).todos [todo];
   appState := {
     nextId: id + 1,
-    todos: [todo, ...(!appState).todos],
+    todos,
   };
-  Server.json (todo__to_yojson todo)
+  Server.json (todos__to_yojson todos)
+}));
+
+Server.post "/todo/remove" (fun _ body _ => withParsedBody body int__from_yojson (fun id => {
+  let todos = List.filter (fun item => item.id !== id) (!appState).todos;
+  appState := {...!appState, todos};
+  Server.json (todos__to_yojson todos)
 }));
 
 Server.post "/todo" Lwt.(fun _ body _ => Cohttp_lwt_body.to_string body >>= (fun body => {

@@ -13,3 +13,5 @@ type todo = {
 };
 
 type todos = list todo;
+
+type new_todo = string;

@@ -3,26 +3,31 @@ let str = ReasonReact.stringToElement;
 let style = ReactDOMRe.Style.make;
 let evtValue event => (ReactDOMRe.domElementToObj (ReactEventRe.Form.target event))##value;
 
-let component = ReasonReact.statefulComponent "Editor";
+type retainedProps = {value: string};
+let component = ReasonReact.statefulComponentWithRetainedProps "Editor";
 type state = option string;
-let make ::value ::onChange _ => {
+let make ::value ::onChange ::placeholder ::className="" ::clear=false _ => {
   ...component,
   initialState: fun () => None,
-  willReceiveProps: fun {state} => switch state {
+  retainedProps: {value: value},
+  willReceiveProps: fun {state, retainedProps} => switch state {
   | None => None
-  | Some text => text === value ? None : Some text
+  | Some text => retainedProps.value === value ? Some text : None
   },
   render: fun {state, update} => {
     switch state {
     | None => <div
         style=(style cursor::"text" ())
+        className
         onClick=(fun evt => {
           ReactEventRe.Mouse.stopPropagation evt;
           (update (fun _ _ => ReasonReact.Update (Some value))) evt;
           })
-      >(str value)</div>
+      >(str (value === "" ? placeholder : value))</div>
     | Some text => <input
         value=text
+        placeholder
+        className
         autoFocus=(Js.Boolean.to_js_boolean true)
         onChange=(update (fun evt _ => ReasonReact.Update (Some (evtValue evt))))
         onClick=(fun evt => ReactEventRe.Mouse.stopPropagation evt)
@@ -31,7 +36,10 @@ let make ::value ::onChange _ => {
           | "Enter" => if (text == value) {
             (update (fun _ _ => ReasonReact.Update None)) ()
           } else {
-            onChange text
+            onChange text;
+            if (clear) {
+              (update (fun _ _ => ReasonReact.Update (Some value))) ()
+            }
           }
           | _ => ()
           }
@@ -39,7 +47,10 @@ let make ::value ::onChange _ => {
         style=(style fontFamily::"inherit" flex::"1" fontSize::"inherit" ())
         onBlur=(fun _ => {
           if (text != value) {
-            onChange text /* TODO I want a different state value that is "waiting" */
+            onChange text; /* TODO I want a different state value that is "waiting" */
+            if (clear) {
+              (update (fun _ _ => ReasonReact.Update (Some value))) ()
+            }
           } else {
             (update (fun _ _ => ReasonReact.Update None)) ()
           }

@@ -22,32 +22,12 @@ let module TodoItem = {
     >
       <input _type="checkbox" checked=(item.completed !== None |> Js.Boolean.to_js_boolean) />
       <div style=(style flexBasis::"10px" ()) />
-      <Editor value=(item.text) onChange=onEdit />
+      <Editor value=(item.text) placeholder="" onChange=onEdit />
     </div>
   }
 };
 
 let jsNow: unit => int = [%bs.raw "function() {return Date.now()}"];
-
-let post: string => Js.Json.t => (Js.Json.t => unit) => unit = [%bs.raw {|
-  function (path, json, onDone) {
-    fetch(path, {body: JSON.stringify(json), method: 'POST', headers: {'Content-Type': 'application/json'}})
-    .then(res => res.json())
-    .then(res => onDone(res), err => console.error('failed', err))
-  }
-|}];
-
-let updateItem item onDone => {
-  post "/todo" (todo__to_json item) (fun data => {
-    switch (todos__from_json data) {
-    | None => Js.log "Failed to parse data"
-    | Some todos => {
-      Js.log2 "New todos" (todos__to_devtools todos);
-      onDone todos
-    }
-    }
-  })
-};
 
 let module Todos = {
   let component = ReasonReact.statefulComponent "Todos";
@@ -58,25 +38,37 @@ let module Todos = {
     let item = item.completed === None
       ? {...item, completed: Some (jsNow())}
       : {...item, completed: None};
-    updateItem item update
+    Api.updateItem item update
   };
-  let editItem item text update => text !== item.text ? updateItem {...item, text} update : ();
+  let editItem item text update => if (text == "") {
+    Api.removeItem item.id update
+  } else {
+    text !== item.text ? Api.updateItem {...item, text} update : ()
+  };
   let make ::data _ => {
     ...component,
     initialState: fun () => data,
     render: fun {state, update} => {
       let updateTodos = (update (fun todos _ => ReasonReact.Update todos));
-      <div>
+      <div className=(Glamor.(css [
+      ]))>
       (List.map
-      (fun item => 
-        <TodoItem
-          item
-          key=(item.id |> string_of_int)
-          onToggle=(fun _ => toggleItem item updateTodos)
-          onEdit=(fun text => editItem item text updateTodos)
+        (fun item => 
+          <TodoItem
+            item
+            key=(item.id |> string_of_int)
+            onToggle=(fun _ => toggleItem item updateTodos)
+            onEdit=(fun text => editItem item text updateTodos)
+          />
+        ) state
+        |> Array.of_list |> ReasonReact.arrayToElement)
+        <Editor
+          value=""
+          className=(Glamor.(css[padding "10px 20px"]))
+          onChange=(fun text => Api.addItem text updateTodos)
+          placeholder="Add an item"
+          clear=true
         />
-      )
-      state |> Array.of_list |> ReasonReact.arrayToElement)
       </div>
     }
   }
@@ -89,8 +81,18 @@ let module Page = {
   let make _children => {
     ...component,
     render: fun _ =>
-      <div>
+      <div className=(Glamor.(css [
+        alignSelf "center",
+        margin "50px",
+        width "300px"
+      ]))>
+      <div className=(Glamor.(css [
+        margin "20px",
+        textAlign "center",
+        fontSize "1.3em",
+      ]))>
         (str "A Nice Todo List")
+        </div>
         <LoadedTodos />
       </div>
   };
