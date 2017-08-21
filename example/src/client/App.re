@@ -29,7 +29,6 @@ let module TodoItem = {
 
 let jsNow: unit => int = [%bs.raw "function() {return Date.now()}"];
 
-/* type callb = (Js.Json.t => unit)[@bs]; */
 let post: string => Js.Json.t => (Js.Json.t => unit) => unit = [%bs.raw {|
   function (path, json, onDone) {
     fetch(path, {body: JSON.stringify(json), method: 'POST', headers: {'Content-Type': 'application/json'}})
@@ -97,4 +96,5 @@ let module Page = {
   };
 };
 
+Devtools.register();
 ReactDOMRe.renderToElementWithId <Page /> "index";
