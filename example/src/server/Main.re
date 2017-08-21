@@ -42,11 +42,12 @@ Server.post "/todo" Lwt.(fun _ body _ => Cohttp_lwt_body.to_string body >>= (fun
     | Some data => {
       let m = ref 2;
       m := 3;
+      let todos = List.map (fun item => item.id === data.id ? data : item) (!appState).todos;
       appState := {
         ...!appState,
-        todos: List.map (fun item => item.id === data.id ? data : item) (!appState).todos,
+        todos,
       };
-      CoServer.respond_string status::`No_content body::"" ()
+      Server.json (todos__to_yojson todos);
     }
     }
   }
