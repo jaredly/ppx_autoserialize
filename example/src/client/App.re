@@ -29,39 +29,39 @@ let module TodoItem = {
 
 let jsNow: unit => int = [%bs.raw "function() {return Date.now()}"];
 
+let toggleItem item update => {
+  let item = item.completed === None
+    ? {...item, completed: Some (jsNow())}
+    : {...item, completed: None};
+  Api.updateItem item update
+};
+let editItem item text update => if (text == "") {
+  Api.removeItem item.id update
+} else {
+  text !== item.text ? Api.updateItem {...item, text} update : ()
+};
+
 let module Todos = {
   let component = ReasonReact.statefulComponent "Todos";
   let url = "/todos";
   type state = todos;
   type data = todos;
-  let toggleItem item update => {
-    let item = item.completed === None
-      ? {...item, completed: Some (jsNow())}
-      : {...item, completed: None};
-    Api.updateItem item update
-  };
-  let editItem item text update => if (text == "") {
-    Api.removeItem item.id update
-  } else {
-    text !== item.text ? Api.updateItem {...item, text} update : ()
-  };
   let make ::data _ => {
     ...component,
     initialState: fun () => data,
     render: fun {state, update} => {
       let updateTodos = (update (fun todos _ => ReasonReact.Update todos));
-      <div className=(Glamor.(css [
-      ]))>
-      (List.map
-        (fun item => 
-          <TodoItem
-            item
-            key=(item.id |> string_of_int)
-            onToggle=(fun _ => toggleItem item updateTodos)
-            onEdit=(fun text => editItem item text updateTodos)
-          />
-        ) state
-        |> Array.of_list |> ReasonReact.arrayToElement)
+      <div>
+        (List.map
+          (fun item =>
+            <TodoItem
+              item
+              key=(item.id |> string_of_int)
+              onToggle=(fun _ => toggleItem item updateTodos)
+              onEdit=(fun text => editItem item text updateTodos)
+            />
+          ) state
+          |> Array.of_list |> ReasonReact.arrayToElement)
         <Editor
           value=""
           className=(Glamor.(css[padding "10px 20px"]))

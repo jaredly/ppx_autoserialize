@@ -10,6 +10,7 @@ module type Config = {
 };
 
 let str = ReasonReact.stringToElement;
+let style = ReactDOMRe.Style.make;
 
 let fetchJson: string => (Js.Json.t => unit) => unit = [%bs.raw {| function (url, fn) {
   fetch(url).then(res => res.json()).then(fn)
@@ -30,7 +31,7 @@ let module F (Config: Config) => {
     },
     render: fun self => {
       switch self.state {
-      | Loading => <div>(str "Loading")</div>
+      | Loading => <div style=(style alignItems::"center" padding::"5px" color::"#ddd" ())>(str "Loading")</div>
       | Error text => <div>(str "Error") (str text)</div>
       | Loaded data => <Config data />
       }

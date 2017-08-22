@@ -12,7 +12,7 @@ let make ::value ::onChange ::placeholder ::className="" ::clear=false _ => {
   retainedProps: {value: value},
   willReceiveProps: fun {state, retainedProps} => switch state {
   | None => None
-  | Some text => retainedProps.value === value ? Some text : None
+  | Some text => (retainedProps.value === value && value !== text) ? Some text : None
   },
   render: fun {state, update} => {
     switch state {
