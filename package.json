@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "bsb -make-world -backend native",
-    "install": "bsb -make-world -backend native",
+    "postinstall": "bsb -make-world -backend native",
     "clean": "bsb -clean-world"
   },
   "bin": {
