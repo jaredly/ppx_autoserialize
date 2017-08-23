@@ -1,0 +1,22 @@
+{
+  "name": "ppx_autoserialize",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "bs-platform": "git+https://github.com/bsansouci/bsb-native.git",
+    "ppx_tools_bs": "git+https://github.com/jaredly/ppx_tools_bs.git"
+  },
+  "scripts": {
+    "build": "bsb -make-world -backend native",
+    "install": "bsb -make-world -backend native",
+    "clean": "bsb -clean-world"
+  },
+  "bin": {
+    "ppx_magic": "./lib/bs/native/ppx_magic.native",
+    "ppx_magic_native": "./lib/bs/native/ppx_magic_native.native"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

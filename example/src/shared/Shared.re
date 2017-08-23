@@ -1,2 +1,0 @@
-
-let module Types = Types;
