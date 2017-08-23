@@ -13,8 +13,8 @@
     "clean": "bsb -clean-world"
   },
   "bin": {
-    "ppx_magic": "./lib/bs/native/ppx_magic.native",
-    "ppx_magic_native": "./lib/bs/native/ppx_magic_native.native"
+    "ppx_magic": "./ppx_magic.sh",
+    "ppx_magic_native": "./ppx_magic_native.sh"
   },
   "keywords": [],
   "author": "",
