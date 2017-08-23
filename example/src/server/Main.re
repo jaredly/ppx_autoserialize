@@ -50,24 +50,29 @@ Server.post "/todo/remove" (fun _ body _ => withParsedBody body int__from_yojson
   Server.json (todos__to_yojson todos)
 }));
 
-Server.post "/todo" Lwt.(fun _ body _ => Cohttp_lwt_body.to_string body >>= (fun body => {
-  switch (maybe_parse body) {
-  | None => CoServer.respond_string status::`Bad_request body::"" ()
-  | Some data => switch (todo__from_yojson data) {
-    | None => CoServer.respond_string status::`Bad_request body::"" ()
-    | Some data => {
-      let m = ref 2;
-      m := 3;
-      let todos = List.map (fun item => item.id === data.id ? data : item) (!appState).todos;
-      appState := {
-        ...!appState,
-        todos,
-      };
-      Server.json (todos__to_yojson todos);
-    }
-    }
-  }
-}));
+let module Let_syntax = {
+  let bind value ::f => Lwt.bind value f;
+  let map value ::f => Lwt.map f value;
+};
+
+Server.post "/todo" Lwt.(fun _ body _ => {
+  [%await let body = Cohttp_lwt_body.to_string body];
+
+  [%guard let Some(data) = maybe_parse body]
+  [@else CoServer.respond_string status::`Bad_request body::"" ()];
+
+  [%guard let Some(data) = todo__from_yojson data]
+  [@else CoServer.respond_string status::`Bad_request body::"" ()];
+
+  let m = ref 2;
+  m := 3;
+  let todos = List.map (fun item => item.id === data.id ? data : item) (!appState).todos;
+  appState := {
+    ...!appState,
+    todos,
+  };
+  Server.json (todos__to_yojson todos);
+});
 
 /* fallback */
 Server.get_prefix "/" (fun _ _ _ _ => {

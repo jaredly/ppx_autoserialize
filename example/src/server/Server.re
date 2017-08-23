@@ -2,12 +2,14 @@ open Lwt;
 open Cohttp;
 open Cohttp_lwt_unix;
 
+let module CoServer = Cohttp_lwt_unix.Server;
+
 let json data => {
   let body = Yojson.Safe.to_string data;
   let module H = Cohttp.Header;
   let headers = H.init();
   let headers = H.add headers "content-type" "application/json";
-  Server.respond_string ::headers status::`OK ::body ()
+  CoServer.respond_string ::headers status::`OK ::body ()
 };
 
 let serveStatic base req body path next => {
@@ -15,15 +17,15 @@ let serveStatic base req body path next => {
   if (Sys.file_exists fname) {
     if (Sys.is_directory fname) {
       if (Sys.file_exists (Filename.concat fname "index.html")) {
-        Server.respond_file fname::(Filename.concat fname "index.html") ();
+        CoServer.respond_file fname::(Filename.concat fname "index.html") ();
       } else {
         next (); /* TODO do a directory listing maybe */
       }
     } else {
-      Server.respond_file ::fname ();
+      CoServer.respond_file ::fname ();
     }
   } else if (Sys.file_exists (fname ^ ".html")) {
-    Server.respond_file fname::(fname ^ ".html") ();
+    CoServer.respond_file fname::(fname ^ ".html") ();
   } else {
     next ()
   }
@@ -84,7 +86,7 @@ let server port => {
 
   let rec next req body path items () => {
     switch items {
-    | [] => Server.respond_string status::`Not_found body::"Not found" ()
+    | [] => CoServer.respond_string status::`Not_found body::"Not found" ()
     | [fn, ...rest] => fn req body path (next req body path rest)
     }
   };
@@ -94,7 +96,7 @@ let server port => {
     next req body path handlers ();
   };
 
-  Server.create mode::(`TCP (`Port port)) (Server.make ::callback ())
+  CoServer.create mode::(`TCP (`Port port)) (CoServer.make ::callback ())
 };
 
 let listen port => {

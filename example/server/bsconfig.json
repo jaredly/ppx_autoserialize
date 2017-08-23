@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "sources": [
     {
-      "dir": "src",
+      "dir": "../src",
       "subdirs": [
         {
           "dir": "client",
@@ -25,9 +25,9 @@
   "bsc-flags": ["-bs-super-errors"],
   "reason": {"react-jsx": 2},
   "ppx-flags": [
-    // "../ppx_autoserialize/_build/install/default/bin/ppx_magic",
-    "./node_modules/.bin/ppx_guard",
-    "./node_modules/.bin/ppx_async"
+    "../../ppx_autoserialize/_build/install/default/bin/ppx_magic_native",
+    "../node_modules/.bin/ppx_guard",
+    "../node_modules/.bin/ppx_async"
   ],
   "bs-dependencies" : [
     "reason-react",
