@@ -32,4 +32,15 @@ let fixtures = [(/* (input, output) */
       }
     };
   ]
+), (
+  [%str
+  module type T = {
+    type t;
+  }
+  ], [%str
+  module type T = {
+    type t;
+    let t__from_json: Js.Json.t => option t;
+  }
+  ]
 )];

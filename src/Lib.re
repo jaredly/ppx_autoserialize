@@ -29,6 +29,36 @@ let rec core_type_converter suffix typ => {
   }
 };
 
+let make_signatures configs {Parsetree.ptype_name: {txt} as name, ptype_params, ptype_kind, ptype_manifest} => {
+  let param_names = List.map
+  (fun (typ, _) => {
+    switch typ.Parsetree.ptyp_desc {
+    | Ptyp_var text => text
+    | _ => assert false
+    }
+  })
+  ptype_params;
+
+  /* [%sig let thing__to_yojson: ('a => Yojson.t) => ('b => Yojson.t) => thing 'a 'b => Yojson.t] */
+
+  let thisType = Ast_helper.Typ.constr (Location.mknoloc (Longident.Lident txt)) (List.map (fun (typ, _) => typ) ptype_params);
+
+  List.map
+  (fun {suffix, variant, record, typ} => {
+    let right = switch typ {
+    | To typ => Ast_helper.Typ.arrow Nolabel thisType typ
+    | From typ => Ast_helper.Typ.arrow Nolabel typ [%type: option [%t thisType]]
+    };
+
+    Ast_helper.Sig.value (Ast_helper.Val.mk
+      (Location.mknoloc (txt ^ suffix))
+      (paramd_type param_names right typ)
+    );
+  })
+  configs
+
+};
+
 let make_converters configs {Parsetree.ptype_name: {txt}, ptype_params, ptype_kind, ptype_manifest, } => {
   let param_names = List.map
   (fun (typ, _) => {
@@ -66,6 +96,20 @@ let mapper configs => Parsetree.{
   ...Ast_mapper.default_mapper,
 
   payload: fun mapper payload => payload,
+
+  signature: fun mapper signature => {
+    let rec loop items => {
+      switch items {
+      | [] => []
+      | [{psig_desc: Psig_type isrec declarations} as item, ...rest] => {
+        let converters = (List.map (make_signatures configs) declarations |> List.concat);
+        [item, ...List.append converters (loop rest)]
+      }
+      | [item, ...rest] => [mapper.signature_item mapper item, ...loop rest]
+      };
+    };
+    loop signature
+  },
 
   structure: fun mapper structure => {
     let rec loop items => {

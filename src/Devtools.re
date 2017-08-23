@@ -21,6 +21,7 @@ let config = {
     } |> to_devtools;
   ],
   suffix: "__to_devtools",
+  typ: To [%type: Js.t {.}],
 
   variant: fun core_type_converter constructors name => {
     open Parsetree;

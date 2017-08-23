@@ -17,6 +17,7 @@ let stringify = {
     };
   ],
   suffix: "__to_yojson",
+  typ: To [%type: Yojson.Safe.json],
 
   variant: fun core_type_converter constructors name => {
     open Parsetree;
@@ -145,6 +146,7 @@ let parse = {
     };
   ],
   suffix: "__from_yojson",
+  typ: From [%type: Yojson.Safe.json],
 
   variant: fun core_type_converter constructors name => {
     open Parsetree;

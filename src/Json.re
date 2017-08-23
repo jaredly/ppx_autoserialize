@@ -17,6 +17,7 @@ let stringify = {
     }
   ],
   suffix: "__to_json",
+  typ: To [%type: Js.Json.t],
 
   variant: fun core_type_converter constructors name => {
     open Parsetree;
@@ -161,6 +162,7 @@ let parse = {
     };
   ],
   suffix: "__from_json",
+  typ: From [%type: Js.Json.t],
 
   variant: fun core_type_converter constructors name => {
     /* [%expr fun _ => failwith "not supported"] */
