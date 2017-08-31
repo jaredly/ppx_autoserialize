@@ -10,6 +10,7 @@ let show_structure structure => {
 
 let fixtures = [
   (JsonStringify.fixtures, Lib.Json.stringify),
+  (DevtoolsSerialize.fixtures, Lib.Devtools.config),
   (JsonParse.fixtures, Lib.Json.parse),
   (YojsonStringify.fixtures, Lib.YoJson.stringify),
 ];

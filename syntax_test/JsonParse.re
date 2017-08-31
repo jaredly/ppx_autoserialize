@@ -11,7 +11,7 @@ let fixtures = [(/* (input, output) */
     type x = {a: int, c: string};
     let x__from_json = fun value => {
       switch (Js.Json.classify value) {
-      | JSONObject value => {
+      | Js.Json.JSONObject value => {
         switch (Js.Dict.get value "a") {
         | None => None
         | Some attr => switch (int__from_json attr) {

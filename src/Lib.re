@@ -39,8 +39,6 @@ let make_signatures configs {Parsetree.ptype_name: {txt} as name, ptype_params, 
   })
   ptype_params;
 
-  /* [%sig let thing__to_yojson: ('a => Yojson.t) => ('b => Yojson.t) => thing 'a 'b => Yojson.t] */
-
   let thisType = Ast_helper.Typ.constr (Location.mknoloc (Longident.Lident txt)) (List.map (fun (typ, _) => typ) ptype_params);
 
   List.map
@@ -59,7 +57,11 @@ let make_signatures configs {Parsetree.ptype_name: {txt} as name, ptype_params, 
 
 };
 
-let make_converters configs {Parsetree.ptype_name: {txt}, ptype_params, ptype_kind, ptype_manifest, } => {
+let make_converters configs {Parsetree.ptype_name: {txt}, ptype_params, ptype_kind, ptype_manifest, ptype_attributes } => {
+  switch ptype_attributes {
+  | [({txt: "noserialize"}, _)] => []
+  | _ => {
+
   let param_names = List.map
   (fun (typ, _) => {
     switch typ.Parsetree.ptyp_desc {
@@ -90,6 +92,9 @@ let make_converters configs {Parsetree.ptype_name: {txt}, ptype_params, ptype_ki
     ]
   })
   configs
+
+  }
+  }
 };
 
 let mapper configs => Parsetree.{

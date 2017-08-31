@@ -40,7 +40,7 @@ let config = {
               "type": [%e Utils.strConst name],
               "constructor": [%e strConst],
               "arguments": [||]
-            } ]
+            } |> to_devtools ]
           | _ => {
             let items = List.mapi
             (fun i typ => Utils.patVar ("arg" ^ (string_of_int i)))
@@ -63,7 +63,7 @@ let config = {
               "type": [%e Utils.strConst name],
               "constructor": [%e strConst],
               "arguments": [%e Utils.list values] |> Array.of_list,
-            }];
+            } |> to_devtools ];
             Exp.case pat expr
           }
         }

@@ -6,6 +6,11 @@ let fixtures = [(/* (input, output) */
     let x__to_json value => int__to_json value;
   ]
 ), (
+  [%str type x = int [@@noserialize]],
+  [%str
+    type x = int [@@noserialize];
+  ]
+), (
   [%str type x = awesome],
   [%str
     type x = awesome;
@@ -27,6 +32,16 @@ let fixtures = [(/* (input, output) */
       Js.Dict.set result "c" (string__to_json value.c);
       Js.Json.object_ result
     };
+  ]
+), (
+  [%str type x = One | Two | Three],
+  [%str
+    type x = One | Two | Three;
+    let x__to_json value => switch value {
+      | One  => Js.Json.string "One"
+      | Two  => Js.Json.string "Two"
+      | Three  => Js.Json.string "Three"
+    }
   ]
 ), (
   [%str type x 'a = list 'a],

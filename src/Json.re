@@ -104,15 +104,15 @@ let stringify = {
 let parse = {
   prefix: [%str
     let int__from_json x => switch (Js.Json.classify x) {
-    | JSONNumber n => Some (int_of_float n)
+    | Js.Json.JSONNumber n => Some (int_of_float n)
     | _ => None
     };
     let float__from_json x => switch (Js.Json.classify x) {
-    | JSONNumber n => Some n
+    | Js.Json.JSONNumber n => Some n
     | _ => None
     };
     let list__from_json convert items => switch (Js.Json.classify items) {
-    | JSONArray arr => {
+    | Js.Json.JSONArray arr => {
       try {
         let items = Array.map (fun item => {
           switch (convert item) {
@@ -128,11 +128,11 @@ let parse = {
     | _ => None
     };
     let string__from_json value => switch (Js.Json.classify value) {
-    | JSONString str => Some str
+    | Js.Json.JSONString str => Some str
     | _ => None
     };
     let array__from_json convert items => switch (Js.Json.classify items) {
-    | JSONArray arr => {
+    | Js.Json.JSONArray arr => {
       try {
         let items = Array.map (fun item => {
           switch (convert item) {
@@ -148,13 +148,13 @@ let parse = {
     | _ => None
     };
     let boolean__from_json value => switch (Js.Json.classify value) {
-    | JSONFalse => Some false
-    | JSONTrue => Some true
+    | Js.Json.JSONFalse => Some false
+    | Js.Json.JSONTrue => Some true
     | _ => None
     };
     let option__from_json convert value => switch (Js.Json.classify value) {
-    | JSONNull => Some None
-    | JSONArray [|item|] => switch (convert item) {
+    | Js.Json.JSONNull => Some None
+    | Js.Json.JSONArray [|item|] => switch (convert item) {
         | None => None
         | Some value => Some (Some value)
       }
@@ -198,7 +198,7 @@ let parse = {
       | Pcstr_tuple types => {
         switch types {
           | [] => Exp.case
-              [%pat? JSONString [%p patConst]]
+              [%pat? Js.Json.JSONString [%p patConst]]
               [%expr Some [%e Exp.construct lid None]]
           | _ => {
             let items = List.mapi
@@ -236,7 +236,7 @@ let parse = {
 
             Exp.case
               [%pat? Js.Json.JSONArray arr]
-              guard::[%expr Js.Json.classify arr.(0) == JSONString [%e strConst]]
+              guard::[%expr Js.Json.classify arr.(0) == Js.Json.JSONString [%e strConst]]
               [%expr switch arr {
               | [%p pattern] => [%e body]
               | _ => None
@@ -289,7 +289,7 @@ let parse = {
     [%expr Some [%e body]];
 
     let body = [%expr switch (Js.Json.classify value) {
-    | JSONObject value => [%e body]
+    | Js.Json.JSONObject value => [%e body]
     | _ => None
     }];
 

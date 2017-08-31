@@ -6,7 +6,7 @@
     {
       "taskName": "make-test",
       "type": "shell",
-      "command": "eval `opam config env` && make test",
+      "command": "eval `opam config env` && npm run build -s && npm test -s",
       "group": {
         "isDefault": true,
         "kind": "build"
