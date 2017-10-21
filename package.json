@@ -10,6 +10,7 @@
   "scripts": {
     "build": "bsb -make-world -backend native",
     "postinstall": "bsb -make-world -backend native",
+    "watch": "bsb -make-world -backend native -w",
     "test": "./lib/bs/native/syntax_test.native",
     "clean": "bsb -clean-world"
   },
