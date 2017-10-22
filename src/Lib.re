@@ -29,32 +29,36 @@ let rec core_type_converter suffix typ => {
   }
 };
 
-let make_signatures configs {Parsetree.ptype_name: {txt} as name, ptype_params, ptype_kind, ptype_manifest} => {
-  let param_names = List.map
-  (fun (typ, _) => {
-    switch typ.Parsetree.ptyp_desc {
-    | Ptyp_var text => text
-    | _ => assert false
-    }
-  })
-  ptype_params;
+let make_signatures configs {Parsetree.ptype_name: {txt} as name, ptype_params, ptype_kind, ptype_manifest, ptype_attributes} => {
+  switch ptype_attributes {
+  | [({txt: "noserialize"}, _)] => []
+  | _ => {
+    let param_names = List.map
+    (fun (typ, _) => {
+      switch typ.Parsetree.ptyp_desc {
+      | Ptyp_var text => text
+      | _ => assert false
+      }
+    })
+    ptype_params;
 
-  let thisType = Ast_helper.Typ.constr (Location.mknoloc (Longident.Lident txt)) (List.map (fun (typ, _) => typ) ptype_params);
+    let thisType = Ast_helper.Typ.constr (Location.mknoloc (Longident.Lident txt)) (List.map (fun (typ, _) => typ) ptype_params);
 
-  List.map
-  (fun {suffix, variant, record, typ} => {
-    let right = switch typ {
-    | To typ => Ast_helper.Typ.arrow Nolabel thisType typ
-    | From typ => Ast_helper.Typ.arrow Nolabel typ [%type: option [%t thisType]]
-    };
+    List.map
+    (fun {suffix, variant, record, typ} => {
+      let right = switch typ {
+      | To typ => Ast_helper.Typ.arrow Nolabel thisType typ
+      | From typ => Ast_helper.Typ.arrow Nolabel typ [%type: option [%t thisType]]
+      };
 
-    Ast_helper.Sig.value (Ast_helper.Val.mk
-      (Location.mknoloc (txt ^ suffix))
-      (paramd_type param_names right typ)
-    );
-  })
-  configs
-
+      Ast_helper.Sig.value (Ast_helper.Val.mk
+        (Location.mknoloc (txt ^ suffix))
+        (paramd_type param_names right typ)
+      );
+    })
+    configs
+  }
+  }
 };
 
 let make_converters configs {Parsetree.ptype_name: {txt}, ptype_params, ptype_kind, ptype_manifest, ptype_attributes } => {

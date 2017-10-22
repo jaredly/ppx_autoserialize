@@ -5,12 +5,13 @@ open Migrate_parsetree.Ast_403;
 
 let stringify = {
   prefix: [%str
+    let unit__to_json () => Js.Json.string "";
     let int__to_json x => Js.Json.number (float_of_int x);
     let float__to_json = Js.Json.number;
     let list__to_json convert items => Js.Json.array (Array.of_list (List.map convert items));
     let string__to_json = Js.Json.string;
     let array__to_json convert items => Js.Json.array (Array.map convert items);
-    let boolean__to_json = Js.Json.boolean;
+    let bool__to_json b => Js.Json.boolean @@ Js.Boolean.to_js_boolean b;
     let option__to_json convert value => switch value {
     | None => Js.Json.null
     | Some value => Js.Json.array [|convert value|]
@@ -103,6 +104,7 @@ let stringify = {
 
 let parse = {
   prefix: [%str
+    let unit__from_json _ => Some ();
     let int__from_json x => switch (Js.Json.classify x) {
     | Js.Json.JSONNumber n => Some (int_of_float n)
     | _ => None
@@ -147,7 +149,7 @@ let parse = {
     }
     | _ => None
     };
-    let boolean__from_json value => switch (Js.Json.classify value) {
+    let bool__from_json value => switch (Js.Json.classify value) {
     | Js.Json.JSONFalse => Some false
     | Js.Json.JSONTrue => Some true
     | _ => None
@@ -185,7 +187,7 @@ let parse = {
     let cases = List.map
     (fun {pcd_name: {txt, loc}, pcd_args} => {
       let patConst = (Pat.constant (Pconst_string txt None));
-      /* let processArgs = 
+      /* let processArgs =
       let body = [%expr switch items {
       | [%p Pat.array [Pat.any (), ...args]] => {
         [%e processArgs]
@@ -210,7 +212,7 @@ let parse = {
             let args = switch types {
             | [] => None
             | [_] => Some (Utils.expIdent "arg0")
-            
+
             | _ => Some (Exp.tuple (List.mapi
                     (fun i typ => {
                       Utils.expIdent ("arg" ^ (string_of_int i))
@@ -264,7 +266,7 @@ let parse = {
     open Ast_helper;
 
     let body = Exp.record
-    (List.map 
+    (List.map
     (fun {pld_name: {txt}} => (
       (Location.mknoloc (Lident txt)),
       Exp.ident (Location.mknoloc (Lident (txt ^ "_extracted")))

@@ -6,10 +6,11 @@ open Migrate_parsetree.Ast_403;
 let config = {
   prefix: [%str
     external to_devtools: 'a => Js.t {.} = "%identity";
+    let unit__to_devtools = to_devtools;
     let int__to_devtools = to_devtools;
     let float__to_devtools = to_devtools;
     let string__to_devtools = to_devtools;
-    let boolean__to_devtools = to_devtools;
+    let bool__to_devtools = to_devtools;
     let list__to_devtools convert items => {
       "$bs": "list",
       "items": List.map convert items |> Array.of_list
