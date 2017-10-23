@@ -1,0 +1,6 @@
+{
+    "name": "ppx_autoserialize_test",
+    "version": "0.1.0",
+    "sources": [ "./src" ],
+    "bsc-flags": ["-w", "+40", "-w", "-30", "-bs-super-errors"]
+  }
