@@ -118,8 +118,8 @@ let parse = {
       try {
         let items = Array.map (fun item => {
           switch (convert item) {
-          | Some x => x
-          | None => failwith "Item failed to parse"
+          | Js.Result.Ok x => x
+          | Js.Result.Error _ => failwith "Item failed to parse"
           }
         }) arr;
         Js.Result.Ok (Array.to_list items)
@@ -138,8 +138,8 @@ let parse = {
       try {
         let items = Array.map (fun item => {
           switch (convert item) {
-          | Some x => x
-          | None => failwith "Item failed to parse"
+          | Js.Result.Ok x => x
+          | Js.Result.Error _ => failwith "Item failed to parse"
           }
         }) arr;
         Js.Result.Ok items
@@ -227,9 +227,10 @@ let parse = {
               ([%expr
               switch ([%e core_type_converter typ]
                         [%e Utils.expIdent argKey]) {
-                | Js.Result.Error (Some key) => Js.Result.Error (Some (argKey ^ "." ^ key))
-                | Js.Result.Error _ => Js.Result.Error (Some argKey)
-                | Js.Result.Ok [%p (Utils.patVar argKey)] => {
+                | Js.Result.Error (Some key) =>
+                  Js.Result.Error (Some ([%e Utils.strConst argKey] ^ ": " ^ key))
+                | Js.Result.Error _ => Js.Result.Error (Some [%e Utils.strConst argKey])
+                | Js.Result.Ok [%p Utils.patVar argKey] => {
                   [%e body]
                 }
               }
@@ -243,7 +244,7 @@ let parse = {
               guard::[%expr Js.Json.classify arr.(0) == Js.Json.JSONString [%e strConst]]
               [%expr switch arr {
               | [%p pattern] => [%e body]
-              | _ => Js.Json.Error None
+              | _ => Js.Result.Error None
               }]
           }
         }
