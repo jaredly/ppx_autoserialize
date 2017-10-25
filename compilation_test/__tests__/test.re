@@ -23,6 +23,7 @@ type record = {
 };
 
 type strArr = array string;
+type strList = list string;
 
 describe "__from_json" (fun () => {
   open Expect;
@@ -72,7 +73,7 @@ describe "__from_json" (fun () => {
 
     test "list" (fun () => {
       let jsonStr = "[1, 2, 3]";
-      let result = jsonStr |> Js.Json.parseExn |> strArr__from_json;
+      let result = jsonStr |> Js.Json.parseExn |> strList__from_json;
       switch result {
         | Ok _ => fail "Shouldn't have parsed"
         | Error (Some key) => fail ("No key expected, given: " ^ key)
