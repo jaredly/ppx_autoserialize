@@ -25,6 +25,10 @@ type record = {
 type strArr = array string;
 type strList = list string;
 
+type nested = {
+  a: array (list variant)
+};
+
 describe "__from_json" (fun () => {
   open Expect;
 
@@ -65,9 +69,9 @@ describe "__from_json" (fun () => {
       let jsonStr = "[1, 2, 3]";
       let result = jsonStr |> Js.Json.parseExn |> strArr__from_json;
       switch result {
-        | Ok _ => fail "Shouldn't have parsed"
-        | Error (Some key) => fail ("No key expected, given: " ^ key)
-        | Error None => pass
+        | Ok _ => failwith "Shouldn't have parsed"
+        | Error None => failwith "No key given"
+        | Error (Some key) => expect key |> toBe "(0)"
       };
     });
 
@@ -75,9 +79,9 @@ describe "__from_json" (fun () => {
       let jsonStr = "[1, 2, 3]";
       let result = jsonStr |> Js.Json.parseExn |> strList__from_json;
       switch result {
-        | Ok _ => fail "Shouldn't have parsed"
-        | Error (Some key) => fail ("No key expected, given: " ^ key)
-        | Error None => pass
+        | Ok _ => failwith "Shouldn't have parsed"
+        | Error None => failwith "No key given"
+        | Error (Some key) => expect key |> toBe "(0)"
       };
     });
 
@@ -88,6 +92,16 @@ describe "__from_json" (fun () => {
         | Ok _ => failwith "Shouldn't have parsed"
         | Error None => failwith "No key given"
         | Error (Some key) => expect key |> toEqual "arg1"
+      };
+    });
+
+    test "nested" (fun () => {
+      let jsonStr = "{\"a\":[[],[[\"Two\",\"a\",\"b\"],[\"One\",4]]]}";
+      let result = jsonStr |> Js.Json.parseExn |> nested__from_json;
+      switch result {
+        | Ok _ => failwith "Shouldn't have parsed"
+        | Error None => failwith "No key given"
+        | Error (Some key) => expect key |> toEqual "a.(1).(1).arg0"
       };
     });
   });

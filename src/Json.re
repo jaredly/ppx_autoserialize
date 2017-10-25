@@ -116,15 +116,16 @@ let parse = {
     let list__from_json convert items => switch (Js.Json.classify items) {
     | Js.Json.JSONArray arr => {
       try {
-        let items = Array.map (fun item => {
+        let items = Js.Array.mapi (fun item i => {
           switch (convert item) {
           | Js.Result.Ok x => x
-          | Js.Result.Error _ => failwith "Item failed to parse"
+          | Js.Result.Error (Some key) => failwith {j|($i).$key|j}
+          | Js.Result.Error None => failwith {j|($i)|j}
           }
         }) arr;
         Js.Result.Ok (Array.to_list items)
       } {
-        | _ => Js.Result.Error None
+        | Failure s => Js.Result.Error (Some s)
       }
     }
     | _ => Js.Result.Error None
@@ -136,15 +137,16 @@ let parse = {
     let array__from_json convert items => switch (Js.Json.classify items) {
     | Js.Json.JSONArray arr => {
       try {
-        let items = Array.map (fun item => {
+        let items = Js.Array.mapi (fun item i => {
           switch (convert item) {
           | Js.Result.Ok x => x
-          | Js.Result.Error _ => failwith "Item failed to parse"
+          | Js.Result.Error (Some key) => failwith {j|($i).$key|j}
+          | Js.Result.Error None => failwith {j|($i)|j}
           }
         }) arr;
         Js.Result.Ok items
       } {
-        | _ => Js.Result.Error None
+        | Failure s => Js.Result.Error (Some s)
       }
     }
     | _ => Js.Result.Error None
