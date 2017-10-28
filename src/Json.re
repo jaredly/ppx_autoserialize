@@ -104,63 +104,65 @@ let stringify = {
 
 let parse = {
   prefix: [%str
-    let unit__from_json _ => Some ();
+    let unit__from_json _ => Js.Result.Ok ();
     let int__from_json x => switch (Js.Json.classify x) {
-    | Js.Json.JSONNumber n => Some (int_of_float n)
-    | _ => None
+    | Js.Json.JSONNumber n => Js.Result.Ok (int_of_float n)
+    | _ => Js.Result.Error None
     };
     let float__from_json x => switch (Js.Json.classify x) {
-    | Js.Json.JSONNumber n => Some n
-    | _ => None
+    | Js.Json.JSONNumber n => Js.Result.Ok n
+    | _ => Js.Result.Error None
     };
     let list__from_json convert items => switch (Js.Json.classify items) {
     | Js.Json.JSONArray arr => {
       try {
-        let items = Array.map (fun item => {
+        let items = Js.Array.mapi (fun item i => {
           switch (convert item) {
-          | Some x => x
-          | None => failwith "Item failed to parse"
+          | Js.Result.Ok x => x
+          | Js.Result.Error (Some key) => failwith {j|($i).$key|j}
+          | Js.Result.Error None => failwith {j|($i)|j}
           }
         }) arr;
-        Some (Array.to_list items)
+        Js.Result.Ok (Array.to_list items)
       } {
-        | _ => None
+        | Failure s => Js.Result.Error (Some s)
       }
     }
-    | _ => None
+    | _ => Js.Result.Error None
     };
     let string__from_json value => switch (Js.Json.classify value) {
-    | Js.Json.JSONString str => Some str
-    | _ => None
+    | Js.Json.JSONString str => Js.Result.Ok str
+    | _ => Js.Result.Error None
     };
     let array__from_json convert items => switch (Js.Json.classify items) {
     | Js.Json.JSONArray arr => {
       try {
-        let items = Array.map (fun item => {
+        let items = Js.Array.mapi (fun item i => {
           switch (convert item) {
-          | Some x => x
-          | None => failwith "Item failed to parse"
+          | Js.Result.Ok x => x
+          | Js.Result.Error (Some key) => failwith {j|($i).$key|j}
+          | Js.Result.Error None => failwith {j|($i)|j}
           }
         }) arr;
-        Some items
+        Js.Result.Ok items
       } {
-        | _ => None
+        | Failure s => Js.Result.Error (Some s)
       }
     }
-    | _ => None
+    | _ => Js.Result.Error None
     };
     let bool__from_json value => switch (Js.Json.classify value) {
-    | Js.Json.JSONFalse => Some false
-    | Js.Json.JSONTrue => Some true
-    | _ => None
+    | Js.Json.JSONFalse => Js.Result.Ok false
+    | Js.Json.JSONTrue => Js.Result.Ok true
+    | _ => Js.Result.Error None
     };
     let option__from_json convert value => switch (Js.Json.classify value) {
-    | Js.Json.JSONNull => Some None
+    | Js.Json.JSONNull => Js.Result.Ok None
     | Js.Json.JSONArray [|item|] => switch (convert item) {
-        | None => None
-        | Some value => Some (Some value)
+        | Js.Result.Error v => Js.Result.Error v
+        | Js.Result.Ok value => Js.Result.Ok (Some value)
       }
-    | _ => None
+    | _ => Js.Result.Error None
     };
   ],
   suffix: "__from_json",
@@ -201,7 +203,7 @@ let parse = {
         switch types {
           | [] => Exp.case
               [%pat? Js.Json.JSONString [%p patConst]]
-              [%expr Some [%e Exp.construct lid None]]
+              [%expr Js.Result.Ok [%e Exp.construct lid None]]
           | _ => {
             let items = List.mapi
             (fun i typ => Utils.patVar ("arg" ^ (string_of_int i)))
@@ -223,25 +225,28 @@ let parse = {
 
             let (body, _) = List.fold_right
             (fun typ (body, i) => {
+              let argKey = "arg" ^ (string_of_int i);
               ([%expr
               switch ([%e core_type_converter typ]
-                        [%e Utils.expIdent ("arg" ^ (string_of_int i))]) {
-                | None => None
-                | Some [%p (Utils.patVar ("arg" ^ (string_of_int i)))] => {
+                        [%e Utils.expIdent argKey]) {
+                | Js.Result.Error (Some key) =>
+                  Js.Result.Error (Some ([%e Utils.strConst argKey] ^ ": " ^ key))
+                | Js.Result.Error _ => Js.Result.Error (Some [%e Utils.strConst argKey])
+                | Js.Result.Ok [%p Utils.patVar argKey] => {
                   [%e body]
                 }
               }
               ], i - 1)
             })
             types
-            ([%expr Some [%e expr]], (List.length types) - 1);
+            ([%expr Js.Result.Ok [%e expr]], (List.length types) - 1);
 
             Exp.case
               [%pat? Js.Json.JSONArray arr]
               guard::[%expr Js.Json.classify arr.(0) == Js.Json.JSONString [%e strConst]]
               [%expr switch arr {
               | [%p pattern] => [%e body]
-              | _ => None
+              | _ => Js.Result.Error None
               }]
           }
         }
@@ -251,7 +256,7 @@ let parse = {
       }
     })
     constructors;
-    let cases = List.append cases [Exp.case (Pat.any ()) [%expr None]];
+    let cases = List.append cases [Exp.case (Pat.any ()) [%expr Js.Result.Error None]];
 
     Exp.fun_
     Asttypes.Nolabel
@@ -279,20 +284,23 @@ let parse = {
       let strConst = Exp.constant (Pconst_string txt None);
       let strPat = Pat.var (Location.mknoloc (txt ^ "_extracted"));
 
-      [%expr switch (Js.Dict.get value [%e strConst]) {
-      | None => None
-      | Some attr => switch ([%e core_type_converter pld_type] attr) {
-        | None => None
-        | Some [%p strPat] => [%e body]
-        }
+      let jsonExpr = [%expr switch (Js.Dict.get value [%e strConst]) {
+      | None => Js.Json.null
+      | Some attr => attr
+      }];
+
+      [%expr switch ([%e core_type_converter pld_type] [%e jsonExpr]) {
+      | Js.Result.Error (Some key) => Js.Result.Error (Some ([%e strConst] ^ "." ^ key))
+      | Js.Result.Error _ => Js.Result.Error (Some [%e strConst])
+      | Js.Result.Ok [%p strPat] => [%e body]
       }]
     })
     labels
-    [%expr Some [%e body]];
+    [%expr Js.Result.Ok [%e body]];
 
     let body = [%expr switch (Js.Json.classify value) {
     | Js.Json.JSONObject value => [%e body]
-    | _ => None
+    | _ => Js.Result.Error None
     }];
 
     Exp.fun_

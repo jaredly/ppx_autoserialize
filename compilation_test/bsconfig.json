@@ -1,0 +1,13 @@
+{
+    "name": "ppx_autoserialize_test",
+    "version": "0.1.0",
+    "bs-dependencies": ["bs-jest"],
+    "sources": [{
+      "dir": "__tests__",
+      "type": "dev"
+    }],
+    "bsc-flags": ["-w", "+40", "-w", "-30", "-bs-super-errors"],
+    "ppx-flags": [
+      "../lib/bs/native/ppx_magic.native"
+    ],
+  }

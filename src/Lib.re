@@ -48,7 +48,7 @@ let make_signatures configs {Parsetree.ptype_name: {txt} as name, ptype_params, 
     (fun {suffix, variant, record, typ} => {
       let right = switch typ {
       | To typ => Ast_helper.Typ.arrow Nolabel thisType typ
-      | From typ => Ast_helper.Typ.arrow Nolabel typ [%type: option [%t thisType]]
+      | From typ => Ast_helper.Typ.arrow Nolabel typ [%type: Js.Result.t [%t thisType] (option string)]
       };
 
       Ast_helper.Sig.value (Ast_helper.Val.mk
