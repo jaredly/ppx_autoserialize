@@ -1,8 +1,0 @@
-
-(jbuild_version 1)
-
-(executable (
-  (name ppx_magic)
-  (public_name ppx_magic)
-  (libraries (lib ocaml-migrate-parsetree))
-  ))

@@ -2,7 +2,7 @@ open SharedTypes;
 
 open Utils;
 
-open Migrate_parsetree.Ast_403;
+/* open Migrate_parsetree.Ast_403; */
 
 let stringify = {
   prefix: [%str
@@ -27,11 +27,11 @@ let stringify = {
     open Longident;
     let cases =
       List.map(
-        ({pcd_name: {txt, loc}, pcd_args}) => {
-          let strConst = Exp.constant(Pconst_string(txt, None));
+        ({pcd_name: {txt, loc}, pcd_args:types}) => {
+          let strConst = Exp.constant(Const_string(txt, None));
           let lid = Location.mknoloc(Lident(txt));
-          switch pcd_args {
-          | Pcstr_tuple(types) =>
+          /* switch pcd_args {
+          | Pcstr_tuple(types) => */
             switch types {
             | [] => Exp.case(Pat.construct(lid, None), [%expr Js.Json.string([%e strConst])])
             | _ =>
@@ -54,12 +54,12 @@ let stringify = {
               let values = [[%expr Js.Json.string([%e strConst])], ...values];
               Exp.case(pat, [%expr Js.Json.array([%e Exp.array(values)])]);
             } /* This isn't supported in 4.02 anyway */
-          | Pcstr_record(labels) => Utils.fail(loc, "Nope record labels")
-          };
+          /* | Pcstr_record(labels) => Utils.fail(loc, "Nope record labels")
+          }; */
         },
         constructors
       );
-    Exp.fun_(Asttypes.Nolabel, None, Utils.patVar("value"), Exp.match([%expr value], cases));
+    Exp.fun_("", None, Utils.patVar("value"), Exp.match([%expr value], cases));
   },
   record: (core_type_converter, labels, name) => {
     open Parsetree;
@@ -69,7 +69,7 @@ let stringify = {
       List.map(
         ({pld_name: {txt}, pld_type}) => {
           let value = Exp.field([%expr value], Location.mknoloc(Lident(txt)));
-          let strConst = Exp.constant(Pconst_string(txt, None));
+          let strConst = Exp.constant(Const_string(txt, None));
           [%expr
             Js.Dict.set(result, [%e strConst], [%e core_type_converter(pld_type)]([%e value]))
           ];
@@ -79,7 +79,7 @@ let stringify = {
     let body = List.append(sets, [[%expr Js.Json.object_(result)]]) |> chainExpressions;
     let body =
       Exp.let_(Nonrecursive, [Ast_helper.Vb.mk(left("result"), [%expr Js.Dict.empty()])], body);
-    Exp.fun_(Asttypes.Nolabel, None, Pat.var(Location.mknoloc("value")), body);
+    Exp.fun_("", None, Pat.var(Location.mknoloc("value")), body);
   }
 };
 
@@ -175,10 +175,10 @@ let parse = {
     ] */
     let cases =
       List.map(
-        ({pcd_name: {txt, loc}, pcd_args}) => {
+        ({pcd_name: {txt, loc}, pcd_args:types}) => {
           let patConst =
             Pat.constant(
-              Pconst_string(txt, None)
+              Const_string(txt, None)
             ); /* let processArgs =
       let body = [%expr switch items {
       | [%p Pat.array [Pat.any (), ...args]] => {
@@ -186,10 +186,10 @@ let parse = {
       }
       | _ => None
       }]; */
-          let strConst = Exp.constant(Pconst_string(txt, None));
+          let strConst = Exp.constant(Const_string(txt, None));
           let lid = Location.mknoloc(Lident(txt));
-          switch pcd_args {
-          | Pcstr_tuple(types) =>
+          /* switch pcd_args {
+          | Pcstr_tuple(types) => */
             switch types {
             | [] =>
               Exp.case(
@@ -240,14 +240,14 @@ let parse = {
                 ]
               );
             } /* This isn't supported in 4.02 anyway */
-          | Pcstr_record(labels) => Utils.fail(loc, "Nope record labels")
-          };
+          /* | Pcstr_record(labels) => Utils.fail(loc, "Nope record labels")
+          }; */
         },
         constructors
       );
     let cases = List.append(cases, [Exp.case(Pat.any(), [%expr None])]);
     Exp.fun_(
-      Asttypes.Nolabel,
+      "",
       None,
       Utils.patVar("value"),
       Exp.match([%expr Js.Json.classify(value)], cases)
@@ -271,7 +271,7 @@ let parse = {
     let body =
       List.fold_right(
         ({pld_name: {txt}, pld_type}, body) => {
-          let strConst = Exp.constant(Pconst_string(txt, None));
+          let strConst = Exp.constant(Const_string(txt, None));
           let strPat = Pat.var(Location.mknoloc(txt ++ "_extracted"));
           [%expr
             switch (Js.Dict.get(value, [%e strConst])) {
@@ -293,6 +293,6 @@ let parse = {
       | _ => None
       }
     ];
-    Exp.fun_(Asttypes.Nolabel, None, Pat.var(Location.mknoloc("value")), body);
+    Exp.fun_("", None, Pat.var(Location.mknoloc("value")), body);
   }
 };

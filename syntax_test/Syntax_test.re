@@ -1,10 +1,12 @@
-open Migrate_parsetree.Ast_403;
+/* open Migrate_parsetree.Ast_403; */
 
-module Convert =
-  Migrate_parsetree.Convert(Migrate_parsetree.OCaml_403, Migrate_parsetree.OCaml_current);
+/* module Convert =
+  Migrate_parsetree.Convert(Migrate_parsetree.OCaml_403, Migrate_parsetree.OCaml_current); */
 
 let show_structure = (structure) => {
-  Pprintast.structure(Format.str_formatter, Convert.copy_structure(structure));
+  Pprintast.structure(Format.str_formatter,
+  /* Convert.copy_structure */
+  (structure));
   Format.flush_str_formatter();
 };
 

@@ -2,7 +2,7 @@ open SharedTypes;
 
 open Utils;
 
-open Migrate_parsetree.Ast_403;
+/* open Migrate_parsetree.Ast_403; */
 
 module Json = Json;
 
@@ -25,7 +25,7 @@ let rec core_type_converter = (suffix, typ) =>
         } else {
           Exp.apply(
             main,
-            List.map((arg) => (Asttypes.Nolabel, core_type_converter(suffix, arg)), args)
+            List.map((arg) => ("", core_type_converter(suffix, arg)), args)
           );
         };
       | Ptyp_var(name) =>
@@ -69,8 +69,8 @@ let make_signatures =
       ({suffix, variant, record, typ}) => {
         let right =
           switch typ {
-          | To(typ) => Ast_helper.Typ.arrow(Nolabel, thisType, typ)
-          | From(typ) => Ast_helper.Typ.arrow(Nolabel, typ, [%type : option([%t thisType])])
+          | To(typ) => Ast_helper.Typ.arrow("", thisType, typ)
+          | From(typ) => Ast_helper.Typ.arrow("", typ, [%type : option([%t thisType])])
           };
         Ast_helper.Sig.value(
           Ast_helper.Val.mk(Location.mknoloc(txt ++ suffix), paramd_type(param_names, right, typ))
@@ -128,7 +128,7 @@ let mapper = (configs) =>
       let rec loop = (items) =>
         switch items {
         | [] => []
-        | [{psig_desc: Psig_type(isrec, declarations)} as item, ...rest] =>
+        | [{psig_desc: Psig_type(declarations)} as item, ...rest] =>
           let converters = List.map(make_signatures(configs), declarations) |> List.concat;
           [item, ...List.append(converters, loop(rest))];
         | [item, ...rest] => [mapper.signature_item(mapper, item), ...loop(rest)]
@@ -139,7 +139,7 @@ let mapper = (configs) =>
       let rec loop = (items) =>
         switch items {
         | [] => []
-        | [{pstr_desc: Pstr_type(isrec, declarations)} as item, ...rest] =>
+        | [{pstr_desc: Pstr_type(declarations)} as item, ...rest] =>
           let converters = List.map(make_converters(configs), declarations) |> List.concat;
           [item, ...List.append(converters, loop(rest))];
         | [item, ...rest] => [mapper.structure_item(mapper, item), ...loop(rest)]

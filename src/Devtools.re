@@ -2,7 +2,7 @@ open SharedTypes;
 
 open Utils;
 
-open Migrate_parsetree.Ast_403;
+/* open Migrate_parsetree.Ast_403; */
 
 let config = {
   prefix: [%str
@@ -32,11 +32,11 @@ let config = {
     open Longident;
     let cases =
       List.map(
-        ({pcd_name: {txt, loc}, pcd_args}) => {
-          let strConst = Exp.constant(Pconst_string(txt, None));
+        ({pcd_name: {txt, loc}, pcd_args: types}) => {
+          let strConst = Exp.constant(Const_string(txt, None));
           let lid = Location.mknoloc(Lident(txt));
-          switch pcd_args {
-          | Pcstr_tuple(types) =>
+          /* switch pcd_args {
+          | Pcstr_tuple(types) => */
             switch types {
             | [] =>
               Exp.case(
@@ -79,18 +79,18 @@ let config = {
               ];
               Exp.case(pat, expr);
             } /* This isn't supported in 4.02 anyway */
-          | Pcstr_record(labels) => Utils.fail(loc, "Nope record labels")
-          };
+          /* | Pcstr_record(labels) => Utils.fail(loc, "Nope record labels")
+          }; */
         },
         constructors
       );
-    Exp.fun_(Asttypes.Nolabel, None, Utils.patVar("value"), Exp.match([%expr value], cases));
+    Exp.fun_("", None, Utils.patVar("value"), Exp.match([%expr value], cases));
   },
   record: (core_type_converter, labels, name) => {
     open Parsetree;
     open Longident;
     open Ast_helper;
-    let strConst = (txt) => Exp.constant(Pconst_string(txt, None));
+    let strConst = (txt) => Exp.constant(Const_string(txt, None));
     let sets =
       List.map(
         ({pld_name: {txt}, pld_type}) => {
@@ -114,6 +114,6 @@ let config = {
       |> chainExpressions;
     let body =
       Exp.let_(Nonrecursive, [Ast_helper.Vb.mk(left("result"), [%expr Js.Dict.empty()])], body);
-    Exp.fun_(Asttypes.Nolabel, None, Pat.var(Location.mknoloc("value")), body);
+    Exp.fun_("", None, Pat.var(Location.mknoloc("value")), body);
   }
 };
