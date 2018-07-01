@@ -6,6 +6,7 @@ type tofrom =
 
 type config = {
   prefix: Parsetree.structure,
+  decorator: string,
   suffix: string,
   typ: tofrom,
   variant:

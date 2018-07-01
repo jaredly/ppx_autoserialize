@@ -5,6 +5,7 @@ open Utils;
 /* open Migrate_parsetree.Ast_403; */
 
 let stringify = {
+  decorator: "to.json",
   prefix: [%str
     let unit__to_json = () => Js.Json.string("");
     let int__to_json = (x) => Js.Json.number(float_of_int(x));
@@ -84,6 +85,7 @@ let stringify = {
 };
 
 let parse = {
+  decorator: "from.json",
   prefix: [%str
     let unit__from_json = (_) => Some();
     let int__from_json = (x) =>

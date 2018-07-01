@@ -24,6 +24,7 @@ let config = {
       )
       |> to_devtools
   ],
+  decorator: "to.devtools",
   suffix: "__to_devtools",
   typ: To([%type : Js.t({.})]),
   variant: (core_type_converter, constructors, name) => {

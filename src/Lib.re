@@ -39,6 +39,7 @@ let rec core_type_converter = (suffix, typ) =>
 
 let make_signatures =
     (
+      ~autoAll,
       configs,
       {
         Parsetree.ptype_name: {txt} as name,
@@ -47,10 +48,7 @@ let make_signatures =
         ptype_manifest,
         ptype_attributes
       }
-    ) =>
-  switch ptype_attributes {
-  | [({txt: "noserialize"}, _)] => []
-  | _ =>
+    ) => {
     let param_names =
       List.map(
         ((typ, _)) =>
@@ -65,20 +63,27 @@ let make_signatures =
         Location.mknoloc(Longident.Lident(txt)),
         List.map(((typ, _)) => typ, ptype_params)
       );
-    List.map(
-      ({suffix, variant, record, typ}) => {
+    List.fold_left(
+      (results, {suffix, variant, record, typ, decorator}) => {
+  let generate = autoAll || List.exists((({Asttypes.txt}, _)) => txt == decorator, ptype_attributes);
+
+  if (generate) {
         let right =
           switch typ {
           | To(typ) => Ast_helper.Typ.arrow("", thisType, typ)
           | From(typ) => Ast_helper.Typ.arrow("", typ, [%type : option([%t thisType])])
           };
-        Ast_helper.Sig.value(
+        [Ast_helper.Sig.value(
           Ast_helper.Val.mk(Location.mknoloc(txt ++ suffix), paramd_type(param_names, right, typ))
-        );
+        ), ...results];
+  } else {
+    results
+  }
       },
+      [],
       configs
     );
-  };
+    };
 
 let make_converters =
     (
@@ -120,7 +125,7 @@ let make_converters =
     );
   };
 
-let mapper = (configs) =>
+let mapper = (~autoAll=false, configs) =>
   Parsetree.{
     ...Ast_mapper.default_mapper,
     payload: (mapper, payload) => payload,
@@ -129,7 +134,7 @@ let mapper = (configs) =>
         switch items {
         | [] => []
         | [{psig_desc: Psig_type(declarations)} as item, ...rest] =>
-          let converters = List.map(make_signatures(configs), declarations) |> List.concat;
+          let converters = List.map(make_signatures(~autoAll, configs), declarations) |> List.concat;
           [item, ...List.append(converters, loop(rest))];
         | [item, ...rest] => [mapper.signature_item(mapper, item), ...loop(rest)]
         };

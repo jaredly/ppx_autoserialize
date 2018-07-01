@@ -5,6 +5,7 @@ open Utils;
 /* open Migrate_parsetree.Ast_403; */
 
 let stringify = {
+  decorator: "to.yojson",
   prefix: [%str
     let int__to_yojson = (x) => `Int(x);
     let float__to_yojson = (x) => `Float(x);
@@ -83,6 +84,7 @@ let stringify = {
 };
 
 let parse = {
+  decorator: "to.yojson",
   prefix: [%str
     let int__from_yojson = (x) =>
       switch x {

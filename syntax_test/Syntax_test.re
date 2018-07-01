@@ -30,7 +30,7 @@ let run = () => {
   let (total, failures) =
     List.fold_left(
       ((total, failures), (fixtures, config)) => {
-        let mapper = Lib.mapper([{...config, prefix: []}]);
+        let mapper = Lib.mapper(~autoAll=true, [{...config, prefix: []}]);
         List.fold_left(
           ((total, failures), (input, expected)) =>
             try {
