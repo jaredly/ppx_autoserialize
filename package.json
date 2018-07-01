@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "bs-platform": "git+https://github.com/bsansouci/bsb-native.git",
-    "ppx_tools_bs": "git+https://github.com/jaredly/ppx_tools_bs.git"
+    "bs-platform": "bsansouci/bsb-native.git#3.2.0",
+    "ppx_tools_bs": "jaredly/ppx_tools_bs.git"
   },
   "scripts": {
     "build": "bsb -make-world -backend native",
