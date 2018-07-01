@@ -1,7 +1,6 @@
 /* open Migrate_parsetree.Ast_403; */
 
-let my_rewriter = (config, cookies) =>
-  Lib.mapper([Lib.Json.stringify, Lib.Json.parse, Lib.Devtools.config]);
+let () = Ast_mapper.run_main(args => Lib.mapper([Lib.Json.stringify, Lib.Json.parse, Lib.Devtools.config]));
 
 /* let () =
   Migrate_parsetree.Driver.register(
