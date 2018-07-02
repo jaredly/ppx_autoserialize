@@ -65,9 +65,9 @@ let make_signatures =
       );
     List.fold_left(
       (results, {suffix, variant, record, typ, decorator}) => {
-  let generate = autoAll || List.exists((({Asttypes.txt}, _)) => txt == decorator, ptype_attributes);
+        let generate = autoAll || List.exists((({Asttypes.txt}, _)) => txt == decorator, ptype_attributes);
 
-  if (generate) {
+        if (generate) {
         let right =
           switch typ {
           | To(typ) => Ast_helper.Typ.arrow("", thisType, typ)
@@ -87,6 +87,7 @@ let make_signatures =
 
 let make_converters =
     (
+      ~autoAll,
       configs,
       {Parsetree.ptype_name: {txt}, ptype_params, ptype_kind, ptype_manifest, ptype_attributes}
     ) =>
@@ -102,27 +103,34 @@ let make_converters =
           },
         ptype_params
       );
-    List.map(
-      ({suffix, variant, record}) => {
-        let right =
-          switch ptype_manifest {
-          | Some((typ)) => [%expr ((value) => [%e core_type_converter(suffix, typ)](value))]
-          | None =>
-            switch ptype_kind {
-            | Ptype_abstract => [%expr ((value) => "type is abstract & cannot be converted")]
-            | Ptype_variant(constructors) =>
-              variant(core_type_converter(suffix), constructors, txt)
-            | Ptype_record(labels) => record(core_type_converter(suffix), labels, txt)
-            | Ptype_open => [%expr ((value) => "type is open & cannot be converted")]
-            }
-          };
-        Ast_helper.Str.value(
-          Nonrecursive,
-          [Ast_helper.Vb.mk(left(txt ++ suffix), paramd_fun(param_names, right))]
-        );
+    List.fold_left(
+      (results, {suffix, variant, record, decorator}) => {
+        let generate = autoAll || List.exists((({Asttypes.txt}, _)) => txt == decorator, ptype_attributes);
+
+        if (generate) {
+          let right =
+            switch ptype_manifest {
+            | Some((typ)) => [%expr ((value) => [%e core_type_converter(suffix, typ)](value))]
+            | None =>
+              switch ptype_kind {
+              | Ptype_abstract => [%expr ((value) => "type is abstract & cannot be converted")]
+              | Ptype_variant(constructors) =>
+                variant(core_type_converter(suffix), constructors, txt)
+              | Ptype_record(labels) => record(core_type_converter(suffix), labels, txt)
+              | Ptype_open => [%expr ((value) => "type is open & cannot be converted")]
+              }
+            };
+          [Ast_helper.Str.value(
+            Nonrecursive,
+            [Ast_helper.Vb.mk(left(txt ++ suffix), paramd_fun(param_names, right))]
+          ), ...results];
+        } else {
+          results
+        }
       },
+      [],
       configs
-    );
+    ) |> List.rev;
   };
 
 let mapper = (~autoAll=false, configs) =>
@@ -145,7 +153,7 @@ let mapper = (~autoAll=false, configs) =>
         switch items {
         | [] => []
         | [{pstr_desc: Pstr_type(declarations)} as item, ...rest] =>
-          let converters = List.map(make_converters(configs), declarations) |> List.concat;
+          let converters = List.map(make_converters(~autoAll, configs), declarations) |> List.concat;
           [item, ...List.append(converters, loop(rest))];
         | [item, ...rest] => [mapper.structure_item(mapper, item), ...loop(rest)]
         };
